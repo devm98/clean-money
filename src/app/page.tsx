@@ -2,9 +2,17 @@ import { Suspense } from "react";
 import AIInput from "@/components/AIInput";
 import TransactionList from "@/components/TransactionList";
 import FinancialCards from "@/components/FinancialCards";
-import MoodWrapper from "@/components/MoodWrapper"; // Import Wrapper mới
+import MoodWrapper from "@/components/MoodWrapper";
+import SpendingAnalytics from "@/components/SpendingAnalytics";
+import UserMenu from "@/components/UserMenu";
+import { createClient } from "@/utils/supabase/server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <MoodWrapper>
       <div className="flex flex-col items-center px-6 py-12">
@@ -14,6 +22,8 @@ export default function Home() {
             <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
               Hôm nay bạn chi tiêu gì?
             </h1>
+            {/* Hiển thị Menu User */}
+            {user && <UserMenu email={user.email!} />}
           </header>
 
           <AIInput />
@@ -24,6 +34,15 @@ export default function Home() {
             }
           >
             <FinancialCards />
+          </Suspense>
+
+          {/* BIỂU ĐỒ PHÂN TÍCH */}
+          <Suspense
+            fallback={
+              <div className="h-[300px] w-full bg-zinc-100 animate-pulse rounded-3xl" />
+            }
+          >
+            <SpendingAnalytics />
           </Suspense>
 
           <section className="flex flex-col gap-4 mt-4">
