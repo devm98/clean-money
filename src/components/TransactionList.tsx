@@ -31,8 +31,6 @@ export default async function TransactionList() {
     .order("date", { ascending: false })
     .limit(10);
 
-  console.log({ transactions });
-
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">

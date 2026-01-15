@@ -79,7 +79,11 @@ export async function processAndSaveTransaction(userInput: string) {
     if (insertError) throw insertError;
 
     revalidatePath("/");
-    return { success: true, message: "Đã ghi nhận giao dịch!" };
+
+    const isHugeIncome =
+      parsedData.type === "income" && parsedData.amount >= 10000000; // Ngưỡng 10tr
+
+    return { success: true, message: "Đã ghi nhận giao dịch!", isHugeIncome };
   } catch (error) {
     console.error("Error:", error);
     return { success: false, error: "Có lỗi xảy ra khi xử lý AI." };

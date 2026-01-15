@@ -4,10 +4,13 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Send, Loader2 } from "lucide-react";
 import { processAndSaveTransaction } from "@/app/actions/transaction";
+import { useFinancialStore } from "@/store/useFinancialStore";
+import confetti from "canvas-confetti";
 
 export default function AIInput() {
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<"idle" | "busy" | "success">("idle");
+  const { setMood } = useFinancialStore();
 
   const handleSubmit = async () => {
     if (!input.trim()) return;
@@ -16,6 +19,19 @@ export default function AIInput() {
     const result = await processAndSaveTransaction(input);
 
     if (result.success) {
+      if (result.isHugeIncome) {
+        // 1. Bắn pháo hoa
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#10b981", "#34d399", "#fbbf24"],
+        });
+
+        // 2. Đổi màu Dashboard trong 3 giây
+        setMood("celebrating");
+        setTimeout(() => setMood("normal"), 3000);
+      }
       setStatus("success");
       setInput("");
       setTimeout(() => setStatus("idle"), 2000);
