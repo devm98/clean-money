@@ -1,7 +1,7 @@
 "use server";
 
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 async function getSupabase() {
@@ -39,8 +39,15 @@ export async function signup(formData: FormData) {
   const supabase = await getSupabase();
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const origin = (await headers()).get("origin") || "http://localhost:3000";
 
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback`,
+    },
+  });
 
   if (error) {
     console.error("Signup Error Details:", error.message, error.status);
