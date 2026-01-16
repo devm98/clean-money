@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Camera } from "lucide-react";
 import { processAndSaveTransaction } from "@/app/actions/transaction";
 import { useFinancialStore } from "@/store/useFinancialStore";
 import confetti from "canvas-confetti";
@@ -12,15 +12,21 @@ export default function AIInput() {
   const [status, setStatus] = useState<"idle" | "busy" | "success">("idle");
   const { setMood } = useFinancialStore();
 
-  const handleSubmit = async () => {
-    if (!input.trim()) return;
+  // Ref để trigger input file ẩn
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Hàm xử lý chung cho cả Text và Image
+  const handleProcess = async (text: string, file?: File) => {
     setStatus("busy");
 
-    const result = await processAndSaveTransaction(input);
+    const formData = new FormData();
+    if (file) formData.append("file", file);
+
+    // Truyền text và formData vào action
+    const result = await processAndSaveTransaction(text, formData);
 
     if (result.success) {
       if (result.isHugeIncome) {
-        // 1. Bắn pháo hoa
         confetti({
           particleCount: 150,
           spread: 70,
@@ -28,7 +34,6 @@ export default function AIInput() {
           colors: ["#10b981", "#34d399", "#fbbf24"],
         });
 
-        // 2. Đổi màu Dashboard trong 3 giây
         setMood("celebrating");
         setTimeout(() => setMood("normal"), 3000);
       }
@@ -36,8 +41,14 @@ export default function AIInput() {
       setInput("");
       setTimeout(() => setStatus("idle"), 2000);
     } else {
+      // Có thể thêm toast thông báo lỗi ở đây
       setStatus("idle");
     }
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleProcess("", file);
   };
 
   return (
@@ -46,23 +57,35 @@ export default function AIInput() {
       animate={{ y: 0, opacity: 1 }}
       className="relative w-full max-w-2xl mx-auto"
     >
-      {/* Hiệu ứng Glow nền */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl blur opacity-20 group-focus-within:opacity-40 transition duration-1000"></div>
+      <div className="absolute -inset-1 bg-linear-to-r from-cyan-500 to-purple-600 rounded-2xl blur opacity-20 group-focus-within:opacity-40 transition duration-1000"></div>
 
       <div className="relative bg-white dark:bg-zinc-900 rounded-xl shadow-xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center p-4 gap-3">
-          <motion.div
-            animate={status === "busy" ? { rotate: 360 } : {}}
-            transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+          {/* Nút chọn ảnh/Camera */}
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={onFileChange}
+            capture="environment" // Ưu tiên mở camera trên điện thoại
+          />
+
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 text-zinc-400 hover:text-purple-500 transition-colors"
+            disabled={status === "busy"}
           >
-            <Sparkles className="w-5 h-5 text-purple-500" />
-          </motion.div>
+            <Camera className="w-5 h-5" />
+          </motion.button>
 
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            placeholder="Sáng nay ăn phở 50k..."
+            onKeyDown={(e) => e.key === "Enter" && handleProcess(input)}
+            placeholder="Sáng nay ăn phở 50k hoặc quét hóa đơn..."
             className="flex-1 bg-transparent outline-none text-lg text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400"
             disabled={status === "busy"}
           />
@@ -82,7 +105,7 @@ export default function AIInput() {
                 key="send"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={handleSubmit}
+                onClick={() => handleProcess(input)}
                 className="p-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full"
               >
                 <Send className="w-4 h-4" />
@@ -91,7 +114,6 @@ export default function AIInput() {
           </AnimatePresence>
         </div>
 
-        {/* Thanh Progress chạy ngầm khi Success */}
         <AnimatePresence>
           {status === "success" && (
             <motion.div
@@ -105,8 +127,8 @@ export default function AIInput() {
       </div>
 
       <p className="mt-3 text-center text-xs text-zinc-500 italic">
-        Thử nói: &quot;Lương tháng này 20 triệu&quot; hoặc &quot;Mua cafe hết
-        45k bằng thẻ Tech&quot;
+        Thử nói: &quot;Lương tháng này 20 triệu&quot; hoặc nhấn icon máy ảnh để
+        quét hóa đơn 📸
       </p>
     </motion.div>
   );

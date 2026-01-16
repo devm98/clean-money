@@ -3,18 +3,46 @@ import { createClient } from "@/utils/supabase/server";
 import { model } from "../lib/gemini";
 import { revalidatePath } from "next/cache";
 
-export async function processAndSaveTransaction(userInput: string) {
-  const supabase = await createClient();
+export async function processAndSaveTransaction(
+  text: string,
+  formData?: FormData
+) {
   try {
-    // 1. Lấy thông tin User hiện tại (Giả định bạn đã setup Auth)
+    const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) throw new Error("Chưa đăng nhập");
+    if (!user) return { success: false, error: "Unauthorized" };
 
-    // 2. AI bóc tách dữ liệu theo Schema
-    const prompt = `
-      Phân tích chi tiêu: "${userInput}".
+    let aiResponse;
+    const file = formData?.get("file") as File;
+
+    // --- BƯỚC 1: GỬI DỮ LIỆU CHO AI ---
+    if (file && file.size > 0) {
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const prompt = `
+        Đây là ảnh hóa đơn hoặc danh sách đơn hàng.
+        Hãy phân tích và trả về một MẢNG JSON các giao dịch.
+        Mỗi phần tử gồm:
+        - amount: (number) Tổng số tiền thực thanh toán, chỉ lấy số.
+        - category_name: (string) Tên danh mục phù hợp (ví dụ: Ăn uống, Mua sắm, Điện tử).
+        - note: (string) Tên sản phẩm hoặc cửa hàng.
+        - type: (string) 'expense' hoặc 'income'.
+        Chỉ trả về JSON thuần, không kèm dấu backticks hay Markdown.
+      `;
+
+      const result = await model.generateContent([
+        prompt,
+        {
+          inlineData: { data: buffer.toString("base64"), mimeType: file.type },
+        },
+      ]);
+      aiResponse = JSON.parse(result.response.text());
+    } else {
+      const prompt = `
+      Phân tích chi tiêu: "${text}".
       Trả về JSON:
       {
         "amount": number,
@@ -23,69 +51,84 @@ export async function processAndSaveTransaction(userInput: string) {
         "note": string
       }
     `;
+      const result = await model.generateContent(prompt);
+      aiResponse = JSON.parse(result.response.text());
+    }
 
-    const aiResult = await model.generateContent(prompt);
-    const parsedData = JSON.parse(aiResult.response.text());
+    // Đảm bảo aiResponse luôn là một mảng để dễ xử lý loop
+    const transactionsToSave = Array.isArray(aiResponse)
+      ? aiResponse
+      : [aiResponse];
 
-    // 3. Xử lý Category (Tìm hoặc tạo mới)
-    let { data: category } = await supabase
-      .from("categories")
-      .select("id")
-      .eq("name", parsedData.category_name)
-      .eq("type", parsedData.type)
-      .single();
+    // --- BƯỚC 2: VALIDATION & LƯU DB ---
+    const results = [];
+    let hasHugeIncome = false;
 
-    if (!category) {
-      const { data: newCat } = await supabase
+    for (const item of transactionsToSave) {
+      // Làm sạch số tiền: xóa mọi ký tự không phải số, ép về kiểu Number
+      // Đây là bước quan trọng nhất để tránh lỗi 23502
+      const rawAmount = item.amount?.toString().replace(/[^0-9]/g, "") || "0";
+      const finalAmount = parseInt(rawAmount, 10);
+
+      if (finalAmount <= 0) continue; // Bỏ qua nếu không có số tiền
+
+      // 1. Tìm hoặc tạo Category
+      let { data: category } = await supabase
         .from("categories")
-        .insert({
-          name: parsedData.category_name,
-          type: parsedData.type,
-          icon: "💰",
-        })
-        .select()
+        .select("id")
+        .eq("name", item.category_name)
         .single();
-      category = newCat;
-    }
 
-    // 4. Lấy Ví mặc định (Ví đầu tiên của user)
-    let { data: wallet } = await supabase
-      .from("wallets")
-      .select("id")
-      .eq("user_id", user.id)
-      .limit(1)
-      .single();
+      if (!category) {
+        const { data: newCat } = await supabase
+          .from("categories")
+          .insert({
+            name: item.category_name,
+            type: item.type || "expense",
+            icon: "📦",
+          })
+          .select()
+          .single();
+        category = newCat;
+      }
 
-    // Nếu chưa có ví, tạo một ví "Tiền mặt" mặc định
-    if (!wallet) {
-      const { data: newWallet } = await supabase
+      // 2. Lấy ví mặc định (Tiền mặt)
+      const { data: wallet } = await supabase
         .from("wallets")
-        .insert({ user_id: user.id, name: "Tiền mặt", balance: 0 })
-        .select()
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1)
         .single();
-      wallet = newWallet;
+
+      if (!wallet) continue;
+
+      // 3. Insert Giao dịch
+      const { error: insertError } = await supabase
+        .from("transactions")
+        .insert({
+          user_id: user.id,
+          amount: finalAmount,
+          category_id: category?.id,
+          wallet_id: wallet.id,
+          note: item.note || "Giao dịch AI",
+          date: new Date().toISOString(),
+        });
+
+      if (!insertError) {
+        results.push(item);
+        if (item.type === "income" && finalAmount >= 10000000)
+          hasHugeIncome = true;
+      }
     }
-
-    // 5. Lưu Giao dịch vào DB theo đúng Schema của bạn
-    const { error: insertError } = await supabase.from("transactions").insert({
-      user_id: user.id,
-      wallet_id: wallet?.id,
-      category_id: category?.id,
-      amount: parsedData.amount,
-      note: parsedData.note,
-      metadata: { ai_raw: userInput, confidence: "high" },
-    });
-
-    if (insertError) throw insertError;
 
     revalidatePath("/");
-
-    const isHugeIncome =
-      parsedData.type === "income" && parsedData.amount >= 10000000; // Ngưỡng 10tr
-
-    return { success: true, message: "Đã ghi nhận giao dịch!", isHugeIncome };
+    return {
+      success: results.length > 0,
+      count: results.length,
+      isHugeIncome: hasHugeIncome,
+    };
   } catch (error) {
-    console.error("Error:", error);
-    return { success: false, error: "Có lỗi xảy ra khi xử lý AI." };
+    console.error("Critical Action Error:", error);
+    return { success: false, error: "Lỗi hệ thống khi xử lý AI" };
   }
 }
