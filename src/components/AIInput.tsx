@@ -12,17 +12,14 @@ export default function AIInput() {
   const [status, setStatus] = useState<"idle" | "busy" | "success">("idle");
   const { setMood } = useFinancialStore();
 
-  // Ref để trigger input file ẩn
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Hàm xử lý chung cho cả Text và Image
   const handleProcess = async (text: string, file?: File) => {
     setStatus("busy");
 
     const formData = new FormData();
     if (file) formData.append("file", file);
 
-    // Truyền text và formData vào action
     const result = await processAndSaveTransaction(text, formData);
 
     if (result.success) {
@@ -41,7 +38,6 @@ export default function AIInput() {
       setInput("");
       setTimeout(() => setStatus("idle"), 2000);
     } else {
-      // Có thể thêm toast thông báo lỗi ở đây
       setStatus("idle");
     }
   };
@@ -68,7 +64,6 @@ export default function AIInput() {
             className="hidden"
             ref={fileInputRef}
             onChange={onFileChange}
-            capture="environment" // Ưu tiên mở camera trên điện thoại
           />
 
           <motion.button
