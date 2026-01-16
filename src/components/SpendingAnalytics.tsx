@@ -1,6 +1,12 @@
 import { createClient } from "@/utils/supabase/server";
 import { SpendingPieChart, SpendingLineChart } from "./SpendingCharts";
 
+interface Transaction {
+  amount: number;
+  date: string;
+  categories: { name: string; type: string } | { name: string; type: string }[];
+}
+
 export default async function SpendingAnalytics() {
   const supabase = await createClient();
 
@@ -24,7 +30,7 @@ export default async function SpendingAnalytics() {
 
   // 2. Xử lý dữ liệu cho Pie Chart (Theo Category)
   const categoryMap: Record<string, number> = {};
-  transactions.forEach((t) => {
+  transactions.forEach((t: Transaction) => {
     const catName = Array.isArray(t.categories)
       ? t.categories[0].name
       : t.categories.name;
