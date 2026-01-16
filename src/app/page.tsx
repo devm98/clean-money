@@ -13,6 +13,24 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const { data: transactions } = await supabase
+    .from("transactions")
+    .select(
+      `
+      id,
+      amount,
+      note,
+      date,
+      categories (
+        name,
+        icon,
+        type
+      )
+    `
+    )
+    .order("date", { ascending: false })
+    .limit(15);
+
   return (
     <MoodWrapper>
       <div className="flex flex-col items-center px-6 py-12">
@@ -52,7 +70,7 @@ export default async function Home() {
                 <div className="h-20 w-full bg-white animate-pulse rounded-2xl" />
               }
             >
-              <TransactionList />
+              <TransactionList initialData={transactions || []} />
             </Suspense>
           </section>
         </main>
