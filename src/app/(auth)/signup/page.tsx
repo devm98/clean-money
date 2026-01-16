@@ -1,34 +1,17 @@
-"use client";
-
-import { signup } from "../actions";
-import { motion } from "framer-motion";
-import { UserPlus, Mail, Lock, ArrowRight } from "lucide-react";
+import SignupForm from "@/components/SignupForm";
+import { AlertCircle, Info, UserPlus } from "lucide-react";
 import Link from "next/link";
-import { useFormStatus } from "react-dom";
 
-// Component Button nhỏ để xử lý loading state mượt mà
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="w-full flex items-center justify-center gap-2 rounded-xl bg-zinc-900 dark:bg-zinc-50 py-3 text-sm font-semibold text-white dark:text-zinc-900 hover:opacity-90 transition-all disabled:opacity-50"
-    >
-      {pending ? "Đang khởi tạo..." : "Tạo tài khoản"}
-      {!pending && <ArrowRight className="w-4 h-4" />}
-    </button>
-  );
-}
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; message?: string }>;
+}) {
+  const { error, message } = await searchParams;
 
-export default function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black p-6 font-sans">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md space-y-8 bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl"
-      >
+      <div className="w-full max-w-md space-y-8 bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl animate-in fade-in zoom-in duration-300">
         <div className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mb-4">
             <UserPlus className="text-purple-600 dark:text-purple-400 w-6 h-6" />
@@ -41,44 +24,23 @@ export default function SignupPage() {
           </p>
         </div>
 
-        <form action={signup} className="space-y-5">
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-              <input
-                name="email"
-                type="email"
-                placeholder="name@example.com"
-                required
-                className="block w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 py-3 pl-10 pr-4 text-zinc-900 dark:text-zinc-50 outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
-              />
-            </div>
+        {/* HIỂN THỊ LỖI (Ví dụ: Email đã tồn tại) */}
+        {error && (
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 text-red-600 dark:text-red-400 text-sm animate-in fade-in slide-in-from-top-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <p>{decodeURIComponent(error)}</p>
           </div>
+        )}
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 ml-1">
-              Mật khẩu
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-              <input
-                name="password"
-                type="password"
-                placeholder="••••••••"
-                required
-                className="block w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 py-3 pl-10 pr-4 text-zinc-900 dark:text-zinc-50 outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
-              />
-            </div>
-            <p className="text-[10px] text-zinc-500 mt-1 ml-1">
-              * Mật khẩu cần ít nhất 6 ký tự
-            </p>
+        {/* HIỂN THỊ THÔNG BÁO (Ít dùng ở signup nhưng cứ để cho đồng bộ) */}
+        {message && (
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400 text-sm animate-in fade-in slide-in-from-top-2">
+            <Info className="w-4 h-4 shrink-0" />
+            <p>{decodeURIComponent(message)}</p>
           </div>
+        )}
 
-          <SubmitButton />
-        </form>
+        <SignupForm />
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
@@ -100,7 +62,7 @@ export default function SignupPage() {
             Đăng nhập
           </Link>
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 }

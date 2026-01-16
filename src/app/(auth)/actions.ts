@@ -41,7 +41,12 @@ export async function signup(formData: FormData) {
   const password = formData.get("password") as string;
 
   const { error } = await supabase.auth.signUp({ email, password });
-  if (error) return redirect("/signup?error=Could not create user");
+
+  if (error) {
+    console.error("Signup Error Details:", error.message, error.status);
+
+    return redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+  }
 
   redirect("/login?message=Check your email to confirm");
 }

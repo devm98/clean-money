@@ -18,12 +18,13 @@ export default async function Home() {
       <div className="flex flex-col items-center px-6 py-12">
         <main className="w-full max-w-2xl flex flex-col gap-8">
           <header className="space-y-1">
-            <h2 className="text-zinc-500 font-medium">Chào Minh,</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-zinc-500 font-medium">Chào Minh,</h2>
+              {user && <UserMenu email={user.email!} />}
+            </div>
             <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
               Hôm nay bạn chi tiêu gì?
             </h1>
-            {/* Hiển thị Menu User */}
-            {user && <UserMenu email={user.email!} />}
           </header>
 
           <AIInput />
@@ -39,7 +40,7 @@ export default async function Home() {
           {/* BIỂU ĐỒ PHÂN TÍCH */}
           <Suspense
             fallback={
-              <div className="h-[300px] w-full bg-zinc-100 animate-pulse rounded-3xl" />
+              <div className="h-75 w-full bg-zinc-100 animate-pulse rounded-3xl" />
             }
           >
             <SpendingAnalytics />

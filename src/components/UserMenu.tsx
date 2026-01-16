@@ -12,7 +12,7 @@ export default function UserMenu({ email }: { email: string }) {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        className="flex items-center gap-2 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
       >
         <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">
           <User className="w-4 h-4" />
@@ -50,7 +50,7 @@ export default function UserMenu({ email }: { email: string }) {
 
               <button
                 onClick={() => signout()}
-                className="w-full flex items-center gap-2 p-4 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                className="cursor-pointer w-full flex items-center gap-2 p-4 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Đăng xuất</span>
