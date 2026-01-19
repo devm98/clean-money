@@ -2,69 +2,42 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { ArrowDownLeft, ArrowUpRight, Sparkles, X } from "lucide-react";
-import AISearch from "./AISearch";
+import { ArrowDownLeft, ArrowUpRight, Loader2 } from "lucide-react";
+import { getFilteredTransactions } from "@/app/actions/transaction";
+import SearchFilters from "./SearchFilters";
 
 export default function TransactionList({
   initialData,
+  categories,
 }: {
   initialData: any[];
+  categories: any[];
 }) {
-  // 1. State quản lý kết quả tìm kiếm
-  const [searchResults, setSearchResults] = useState<any[] | null>(null);
-  const [summary, setSummary] = useState<string | null>(null);
+  const [displayData, setDisplayData] = useState(initialData);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Dữ liệu thực tế: Ưu tiên kết quả tìm kiếm, nếu không có thì dùng data gốc
-  const displayData = searchResults || initialData;
-
-  const handleSearchResults = (res: any) => {
-    if (res.success) {
-      setSearchResults(res.data);
-      setSummary(res.summary);
-    } else {
-      setSearchResults(null);
-      setSummary(null);
-    }
-  };
-
-  const clearSearch = () => {
-    setSearchResults(null);
-    setSummary(null);
+  const handleFilter = async (filters: any) => {
+    setIsSearching(true);
+    const res = await getFilteredTransactions(filters);
+    if (res.success) setDisplayData(res.data);
+    setIsSearching(false);
   };
 
   return (
     <div className="space-y-6">
-      {/* KHU VỰC TÌM KIẾM */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-2">
-          <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 tracking-tight">
-            {searchResults ? "Kết quả tìm kiếm" : "Giao dịch gần đây"}
+      <div className="px-2">
+        <div className="flex items-center gap-2 mb-4">
+          <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+            Giao dịch
           </h3>
-          {searchResults && (
-            <button
-              onClick={clearSearch}
-              className="text-xs font-semibold text-purple-600 flex items-center gap-1 hover:underline"
-            >
-              <X className="w-3 h-3" /> Xóa bộ lọc
-            </button>
+          {isSearching && (
+            <Loader2 className="w-4 h-4 animate-spin text-purple-500" />
           )}
         </div>
 
-        {/* Tích hợp AISearch vào đây */}
-        <AISearch onResults={handleSearchResults} />
+        <SearchFilters categories={categories} onFilter={handleFilter} />
       </div>
 
-      {/* HIỂN THỊ TÓM TẮT CỦA AI */}
-      {summary && (
-        <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-2xl flex gap-3 animate-in fade-in slide-in-from-top-2">
-          <Sparkles className="w-5 h-5 text-purple-500 shrink-0" />
-          <p className="text-sm text-purple-700 dark:text-purple-300 font-medium">
-            {summary}
-          </p>
-        </div>
-      )}
-
-      {/* DANH SÁCH HIỂN THỊ */}
       <div className="grid gap-2">
         {displayData.length > 0 ? (
           displayData.map((t) => {

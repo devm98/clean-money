@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 export async function processAndSaveTransaction(
   text: string,
-  formData?: FormData
+  formData?: FormData,
 ) {
   try {
     const supabase = await createClient();
@@ -131,4 +131,34 @@ export async function processAndSaveTransaction(
     console.error("Critical Action Error:", error);
     return { success: false, error: "Lỗi hệ thống khi xử lý AI" };
   }
+}
+
+export async function getFilteredTransactions(filters: {
+  text?: string;
+  categoryId?: string;
+  type?: string;
+}) {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("transactions")
+    .select("*, categories!inner(*)")
+    .order("date", { ascending: false });
+
+  // Logic lọc động
+  if (filters.text) {
+    query = query.ilike("note", `%${filters.text}%`);
+  }
+
+  if (filters.categoryId) {
+    query = query.eq("category_id", filters.categoryId);
+  }
+
+  if (filters.type) {
+    query = query.eq("categories.type", filters.type);
+  }
+
+  const { data, error } = await query.limit(50);
+
+  return { success: !error, data: data || [] };
 }

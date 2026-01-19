@@ -26,10 +26,15 @@ export default async function Home() {
         icon,
         type
       )
-    `
+    `,
     )
     .order("date", { ascending: false })
     .limit(15);
+
+  const { data: categories } = await supabase
+    .from("categories")
+    .select("*")
+    .order("name", { ascending: true });
 
   return (
     <MoodWrapper>
@@ -70,7 +75,10 @@ export default async function Home() {
                 <div className="h-20 w-full bg-white animate-pulse rounded-2xl" />
               }
             >
-              <TransactionList initialData={transactions || []} />
+              <TransactionList
+                initialData={transactions || []}
+                categories={categories || []}
+              />
             </Suspense>
           </section>
         </main>
