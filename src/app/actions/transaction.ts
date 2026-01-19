@@ -15,7 +15,12 @@ export async function processAndSaveTransaction(
     if (!user) return { success: false, error: "Unauthorized" };
 
     let aiResponse;
+    const selectedDate = formData?.get("selectedDate") as string;
     const file = formData?.get("file") as File;
+
+    const dateContext = `Ngày hiện tại người dùng đang chọn trên giao diện là: ${selectedDate || new Date().toISOString()}.
+    Nếu trong text/ảnh có nhắc đến ngày cụ thể (hôm qua, thứ 2...), hãy tính toán dựa trên ngày này.
+    Nếu không thấy nhắc đến ngày, hãy trả về chính xác ngày: ${selectedDate}.`;
 
     // --- BƯỚC 1: GỬI DỮ LIỆU CHO AI ---
     if (file && file.size > 0) {
@@ -41,6 +46,8 @@ export async function processAndSaveTransaction(
             - Thu nhập, Lương -> 💰, 💹
             Chỉ trả về icon là 1 ký tự Emoji duy nhất.
         Chỉ trả về JSON thuần, không kèm dấu backticks hay Markdown.
+
+        ${dateContext}
       `;
 
       const result = await model.generateContent([
@@ -69,6 +76,8 @@ export async function processAndSaveTransaction(
           - Nhà cửa, Tiền thuê -> 🏠, 🔑
           - Thu nhập, Lương -> 💰, 💹
           Chỉ trả về icon là 1 ký tự Emoji duy nhất.
+
+      ${dateContext}
     `;
       const result = await model.generateContent(prompt);
       aiResponse = JSON.parse(result.response.text());
@@ -82,7 +91,9 @@ export async function processAndSaveTransaction(
     // --- BƯỚC 2: VALIDATION & LƯU DB ---
     const results = [];
     let hasHugeIncome = false;
+
     console.log(transactionsToSave);
+
     for (const item of transactionsToSave) {
       const rawAmount = item.amount?.toString().replace(/[^0-9]/g, "") || "0";
       const finalAmount = parseInt(rawAmount, 10);
@@ -132,6 +143,7 @@ export async function processAndSaveTransaction(
       }
 
       // 3. Insert Giao dịch
+      const finalDate = item.date || selectedDate || new Date().toISOString();
       const { error: insertError } = await supabase
         .from("transactions")
         .insert({
@@ -140,7 +152,7 @@ export async function processAndSaveTransaction(
           category_id: category!.id,
           wallet_id: wallet!.id,
           note: item.note || "Giao dịch AI",
-          date: item.date || new Date().toISOString(),
+          date: finalDate,
         });
 
       if (!insertError) {

@@ -1,61 +1,68 @@
-import { createClient } from "@/utils/supabase/server";
-import { SpendingPieChart, SpendingLineChart } from "./SpendingCharts";
+"use client";
 
-interface Transaction {
-  amount: number;
-  date: string;
-  categories: { name: string; type: string } | { name: string; type: string }[];
+import { useMemo } from "react";
+import { SpendingPieChart, SpendingLineChart } from "./SpendingCharts";
+import {
+  format,
+  eachDayOfInterval,
+  startOfMonth,
+  endOfMonth,
+  parseISO,
+} from "date-fns";
+
+interface Props {
+  transactions: any[];
 }
 
-export default async function SpendingAnalytics() {
-  const supabase = await createClient();
+export default function SpendingAnalytics({ transactions }: Props) {
+  const pieData = useMemo(() => {
+    const categoryMap: Record<string, number> = {};
 
-  // 1. Lấy dữ liệu 30 ngày gần đây
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    transactions.forEach((t) => {
+      const category = Array.isArray(t.categories)
+        ? t.categories[0]
+        : t.categories;
+      if (category?.type === "expense") {
+        const catName = category.name;
+        categoryMap[catName] = (categoryMap[catName] || 0) + Number(t.amount);
+      }
+    });
 
-  const { data: transactions } = await supabase
-    .from("transactions")
-    .select(
-      `
-      amount,
-      date,
-      categories!inner(name, type)
-    `
-    )
-    .eq("categories.type", "expense")
-    .gte("date", thirtyDaysAgo.toISOString());
+    return Object.entries(categoryMap).map(([name, value]) => ({
+      name,
+      value,
+    }));
+  }, [transactions]);
 
-  if (!transactions) return null;
+  const lineData = useMemo(() => {
+    if (transactions.length === 0) return [];
 
-  // 2. Xử lý dữ liệu cho Pie Chart (Theo Category)
-  const categoryMap: Record<string, number> = {};
-  transactions.forEach((t: Transaction) => {
-    const catName = Array.isArray(t.categories)
-      ? t.categories[0].name
-      : t.categories.name;
-    categoryMap[catName] = (categoryMap[catName] || 0) + Number(t.amount);
-  });
-  const pieData = Object.entries(categoryMap).map(([name, value]) => ({
-    name,
-    value,
-  }));
+    const refDate = parseISO(transactions[0]?.date || new Date().toISOString());
+    const daysInMonth = eachDayOfInterval({
+      start: startOfMonth(refDate),
+      end: endOfMonth(refDate),
+    });
 
-  // 3. Xử lý dữ liệu cho Line Chart (Theo Ngày - 7 ngày gần nhất)
-  const last7Days = [...Array(7)]
-    .map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      return d.toISOString().split("T")[0];
-    })
-    .reverse();
+    return daysInMonth.map((day) => {
+      const dayStr = format(day, "yyyy-MM-dd");
+      const dayTotal = transactions
+        .filter((t) => t.date.startsWith(dayStr))
+        .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
-  const lineData = last7Days.map((date) => {
-    const dayTotal = transactions
-      .filter((t) => t.date.startsWith(date))
-      .reduce((acc, curr) => acc + Number(curr.amount), 0);
-    return { name: date.split("-").slice(2).join("/"), spent: dayTotal };
-  });
+      return {
+        name: format(day, "dd/MM"),
+        spent: dayTotal,
+      };
+    });
+  }, [transactions]);
+
+  if (transactions.length === 0) {
+    return (
+      <div className="py-20 text-center text-zinc-500 bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl border border-dashed border-zinc-200">
+        Không có dữ liệu chi tiêu trong tháng này.
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

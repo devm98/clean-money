@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/utils/format";
 import {
   PieChart,
   Pie,
@@ -46,6 +47,7 @@ export function SpendingPieChart({ data }: { data: any[] }) {
             ))}
           </Pie>
           <Tooltip
+            formatter={(value) => [formatCurrency(Number(value)), "Tổng chi"]}
             contentStyle={{
               backgroundColor: "#18181b",
               border: "none",
@@ -87,6 +89,7 @@ export function SpendingLineChart({ data }: { data: any[] }) {
           />
           <YAxis hide />
           <Tooltip
+            formatter={(value) => [formatCurrency(Number(value)), "Chi tiêu"]}
             contentStyle={{
               backgroundColor: "#18181b",
               border: "none",

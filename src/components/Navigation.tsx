@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Home, Tag, LogOut, User } from "lucide-react";
+import { Home, Tag, LogOut, User, PieChart } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const navItems = [
   { name: "Trang chủ", href: "/", icon: Home },
   // { name: "Ví tiền", href: "/wallets", icon: Wallet },
+  { name: "Phân tích", href: "/analytics", icon: PieChart },
   { name: "Danh mục", href: "/categories", icon: Tag },
-  // { name: "Phân tích", href: "/analytics", icon: PieChart },
 ];
 
 export default function Navigation() {

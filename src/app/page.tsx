@@ -3,7 +3,6 @@ import AIInput from "@/components/AIInput";
 import TransactionList from "@/components/TransactionList";
 import FinancialCards from "@/components/FinancialCards";
 import MoodWrapper from "@/components/MoodWrapper";
-import SpendingAnalytics from "@/components/SpendingAnalytics";
 import UserMenu from "@/components/UserMenu";
 import { createClient } from "@/utils/supabase/server";
 
@@ -48,9 +47,7 @@ export default async function Home() {
               Hôm nay bạn chi tiêu gì?
             </h1>
           </header>
-
           <AIInput />
-
           <Suspense
             fallback={
               <div className="h-32 w-full bg-zinc-100 animate-pulse rounded-3xl" />
@@ -58,16 +55,6 @@ export default async function Home() {
           >
             <FinancialCards />
           </Suspense>
-
-          {/* BIỂU ĐỒ PHÂN TÍCH */}
-          <Suspense
-            fallback={
-              <div className="h-75 w-full bg-zinc-100 animate-pulse rounded-3xl" />
-            }
-          >
-            <SpendingAnalytics />
-          </Suspense>
-
           <section className="flex flex-col gap-4 mt-4">
             <Suspense
               fallback={
