@@ -28,8 +28,7 @@ export default async function Home() {
       )
     `,
     )
-    .order("date", { ascending: false })
-    .limit(15);
+    .order("date", { ascending: false });
 
   const { data: categories } = await supabase
     .from("categories")
@@ -38,7 +37,7 @@ export default async function Home() {
 
   return (
     <MoodWrapper>
-      <div className="flex flex-col items-center px-6 py-12">
+      <div className="flex flex-col items-center px-6 md:py-12 pt-12 pb-24">
         <main className="w-full max-w-2xl flex flex-col gap-8">
           <header className="space-y-1">
             <div className="flex items-center justify-between">

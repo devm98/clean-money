@@ -6,8 +6,10 @@ import { Send, Loader2, Camera } from "lucide-react";
 import { processAndSaveTransaction } from "@/app/actions/transaction";
 import { useFinancialStore } from "@/store/useFinancialStore";
 import confetti from "canvas-confetti";
+import { useRouter } from "next/navigation";
 
 export default function AIInput() {
+  const router = useRouter();
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<"idle" | "busy" | "success">("idle");
   const { setMood } = useFinancialStore();
@@ -37,6 +39,7 @@ export default function AIInput() {
       setStatus("success");
       setInput("");
       setTimeout(() => setStatus("idle"), 2000);
+      router.refresh();
     } else {
       setStatus("idle");
     }

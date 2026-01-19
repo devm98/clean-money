@@ -30,6 +30,16 @@ export async function processAndSaveTransaction(
         - category_name: (string) Tên danh mục phù hợp (ví dụ: Ăn uống, Mua sắm, Điện tử).
         - note: (string) Tên sản phẩm hoặc cửa hàng.
         - type: (string) 'expense' hoặc 'income'.
+        - icon: (string) Emoji phù hợp với danh mục.
+        - date: (string) Ngày giao dịch ở định dạng YYYY-MM-DD (toISOString). Nếu không tìm thấy ngày, hãy lấy ngày hiện tại.
+
+        Điển hình như đối với trường "icon", hãy chọn một Emoji phù hợp nhất với nội dung:
+            - Ăn uống, Cafe -> 🍔, ☕, 🍜
+            - Di chuyển, Xe cộ -> 🚗, 🚲, ⛽
+            - Mua sắm, Điện tử -> 🛍️, 💻, 📱
+            - Nhà cửa, Tiền thuê -> 🏠, 🔑
+            - Thu nhập, Lương -> 💰, 💹
+            Chỉ trả về icon là 1 ký tự Emoji duy nhất.
         Chỉ trả về JSON thuần, không kèm dấu backticks hay Markdown.
       `;
 
@@ -49,7 +59,16 @@ export async function processAndSaveTransaction(
         "category_name": string,
         "type": "income" | "expense",
         "note": string
+        "icon": string
+        "date": string (YYYY-MM-DD, toISOString)
       }
+        Đối với trường "icon", hãy chọn một Emoji phù hợp nhất với nội dung:
+          - Ăn uống, Cafe -> 🍔, ☕, 🍜
+          - Di chuyển, Xe cộ -> 🚗, 🚲, ⛽
+          - Mua sắm, Điện tử -> 🛍️, 💻, 📱
+          - Nhà cửa, Tiền thuê -> 🏠, 🔑
+          - Thu nhập, Lương -> 💰, 💹
+          Chỉ trả về icon là 1 ký tự Emoji duy nhất.
     `;
       const result = await model.generateContent(prompt);
       aiResponse = JSON.parse(result.response.text());
@@ -63,10 +82,8 @@ export async function processAndSaveTransaction(
     // --- BƯỚC 2: VALIDATION & LƯU DB ---
     const results = [];
     let hasHugeIncome = false;
-
+    console.log(transactionsToSave);
     for (const item of transactionsToSave) {
-      // Làm sạch số tiền: xóa mọi ký tự không phải số, ép về kiểu Number
-      // Đây là bước quan trọng nhất để tránh lỗi 23502
       const rawAmount = item.amount?.toString().replace(/[^0-9]/g, "") || "0";
       const finalAmount = parseInt(rawAmount, 10);
 
@@ -85,7 +102,7 @@ export async function processAndSaveTransaction(
           .insert({
             name: item.category_name,
             type: item.type || "expense",
-            icon: "📦",
+            icon: item.icon || "📦",
           })
           .select()
           .single();
@@ -93,14 +110,26 @@ export async function processAndSaveTransaction(
       }
 
       // 2. Lấy ví mặc định (Tiền mặt)
-      const { data: wallet } = await supabase
+      let { data: wallet } = await supabase
         .from("wallets")
         .select("id")
         .eq("user_id", user.id)
         .limit(1)
         .single();
 
-      if (!wallet) continue;
+      if (!wallet) {
+        console.info("No default wallet found, init wallet first.");
+        const { data: newWallet } = await supabase
+          .from("wallets")
+          .insert({
+            user_id: user.id,
+            name: "Tiền mặt",
+            balance: 10000,
+          })
+          .select()
+          .single();
+        wallet = newWallet;
+      }
 
       // 3. Insert Giao dịch
       const { error: insertError } = await supabase
@@ -108,10 +137,10 @@ export async function processAndSaveTransaction(
         .insert({
           user_id: user.id,
           amount: finalAmount,
-          category_id: category?.id,
-          wallet_id: wallet.id,
+          category_id: category!.id,
+          wallet_id: wallet!.id,
           note: item.note || "Giao dịch AI",
-          date: new Date().toISOString(),
+          date: item.date || new Date().toISOString(),
         });
 
       if (!insertError) {

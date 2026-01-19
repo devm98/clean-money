@@ -24,7 +24,7 @@ const COLORS = [
 
 export function SpendingPieChart({ data }: { data: any[] }) {
   return (
-    <div className="h-[300px] w-full bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+    <div className="h-75 w-full bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
       <h3 className="text-sm font-medium text-zinc-500 mb-4">
         Phân bổ chi tiêu
       </h3>
@@ -62,7 +62,7 @@ export function SpendingPieChart({ data }: { data: any[] }) {
 
 export function SpendingLineChart({ data }: { data: any[] }) {
   return (
-    <div className="h-[300px] w-full bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+    <div className="h-75 w-full bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
       <h3 className="text-sm font-medium text-zinc-500 mb-4">
         Biến động chi tiêu
       </h3>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ArrowDownLeft, ArrowUpRight, Loader2 } from "lucide-react";
 import { getFilteredTransactions } from "@/app/actions/transaction";
@@ -22,6 +22,10 @@ export default function TransactionList({
     if (res.success) setDisplayData(res.data);
     setIsSearching(false);
   };
+
+  useEffect(() => {
+    setDisplayData(initialData);
+  }, [initialData]);
 
   return (
     <div className="space-y-6">
